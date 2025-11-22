@@ -1,0 +1,13 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Python: quick smoke check (print help)",
+			"type": "shell",
+			"command": "python3 yt_transcribe_and_summarize.py -h",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		}
+	]
+}

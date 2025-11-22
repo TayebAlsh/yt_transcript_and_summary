@@ -1,0 +1,19 @@
+youtube-transcript-api>=0.6.2
+yt-dlp>=2025.1.26
+requests>=2.32.0
+python-dotenv>=1.0.1
+sumy>=0.11.0
+whisper-timestamped>=1.14.4 # extended whisper features (optional)
+openai-whisper>=20231117 # whisper reference implementation (may install torch if missing)
+transformers>=4.42.0
+torch>=2.2.0
+sentencepiece>=0.2.0
+accelerate>=0.30.0
+einops>=0.7.0
+
+streamlit>=1.38.0
+weasyprint>=62.3
+markdown-it-py>=3.0.0
+html5lib>=1.1
+
+pyannote.audio>=3.1.1
