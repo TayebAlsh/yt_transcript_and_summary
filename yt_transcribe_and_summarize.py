@@ -37,7 +37,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 
-from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled, NoTranscriptFound, CouldNotRetrieveTranscript
+from youtube_transcript_api import (
+    YouTubeTranscriptApi,
+    TranscriptsDisabled,
+    NoTranscriptFound,
+    CouldNotRetrieveTranscript,
+)
 from dotenv import load_dotenv
 import requests
 
@@ -84,10 +89,13 @@ try:
     from pyannote.audio import Pipeline
 except Exception:
     Pipeline = None  # type: ignore
+
+
 @dataclass
 class Summary:
     tldr: str
     detailed: str
+
 
 @dataclass
 class Segment:
@@ -159,44 +167,52 @@ def download_audio(url: str, out_dir: Path) -> Optional[Path]:
         return None
     out_path = out_dir / "%(id)s.%(ext)s"
     ydl_opts = {
-        'format': 'bestaudio/best',
-        'outtmpl': str(out_path),
-        'postprocessors': [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': 'mp3',
-            'preferredquality': '128',
-        }],
-        'quiet': True,
-        'noprogress': True,
+        "format": "bestaudio/best",
+        "outtmpl": str(out_path),
+        "postprocessors": [
+            {
+                "key": "FFmpegExtractAudio",
+                "preferredcodec": "mp3",
+                "preferredquality": "128",
+            }
+        ],
+        "quiet": True,
+        "noprogress": True,
     }
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             # yt-dlp returns the file path after post-processing in info dict sometimes
             # We'll glob for the id-based filename
-            vid = info.get('id')
+            vid = info.get("id")
             for p in out_dir.glob(f"{vid}.*"):
-                if p.suffix in {'.mp3', '.m4a', '.webm', '.wav'}:
+                if p.suffix in {".mp3", ".m4a", ".webm", ".wav"}:
                     return p
     except Exception:
         return None
     return None
 
 
-def transcribe_with_whisper(audio_path: Path, model_name: str = "medium") -> Optional[List[Segment]]:
+def transcribe_with_whisper(
+    audio_path: Path, model_name: str = "medium"
+) -> Optional[List[Segment]]:
     if whisper is None:
         print("Whisper library not installed. Can't transcribe.")
         return None
     try:
-        # Force CPU for Whisper due to MPS compatibility issues
-        device = "cpu"
+        # Use CUDA if available, otherwise CPU
+        device = "cuda" if torch and torch.cuda.is_available() else "cpu"
         model = whisper.load_model(model_name, device=device)
-        result = model.transcribe(str(audio_path))
+        result = model.transcribe(str(audio_path), verbose=False)
         segments = []
         for seg in result.get("segments", []):
             text = seg.get("text", "").strip()
             if text:
-                segments.append(Segment(start=seg.get("start", 0.0), end=seg.get("end", 0.0), text=text))
+                segments.append(
+                    Segment(
+                        start=seg.get("start", 0.0), end=seg.get("end", 0.0), text=text
+                    )
+                )
         return segments if segments else None
     except RuntimeError as e:
         print(f"Whisper runtime error: {e}")
@@ -212,7 +228,12 @@ def add_diarization(audio_path: Path, segments: List[Segment]) -> List[Segment]:
         return segments
     try:
         # Load pipeline (requires HF token)
-        pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization-3.1", use_auth_token=os.getenv("HF_TOKEN"))
+        pipeline = Pipeline.from_pretrained(
+            "pyannote/speaker-diarization-3.1", use_auth_token=os.getenv("HF_TOKEN")
+        )
+        # Move to GPU if available
+        if torch and torch.cuda.is_available():
+            pipeline.to(torch.device("cuda"))
         # Run diarization
         diarization = pipeline(str(audio_path))
         # Assign speakers to segments
@@ -227,17 +248,25 @@ def add_diarization(audio_path: Path, segments: List[Segment]) -> List[Segment]:
                 seg.speaker = speakers[0]  # Simple: assign first overlapping speaker
         return segments
     except Exception as e:
-        print(f"Diarization failed: {e}")
+        print(f"Diarization failed: {e}. Continuing without speakers.")
         return segments
 
-def get_transcript(video_url_or_id: str, lang: str, whisper_model: str = "medium", use_diarization: bool = False) -> Optional[List[Segment]]:
+
+def get_transcript(
+    video_url_or_id: str,
+    lang: str,
+    whisper_model: str = "medium",
+    use_diarization: bool = False,
+) -> Optional[List[Segment]]:
     """Get transcript segments from captions or Whisper fallback."""
     video_id = extract_video_id(video_url_or_id)
     if not use_diarization:
         segments = fetch_captions(video_id, lang)
         if segments:
             return segments
-    print("No official captions found or diarization requested. Attempting local Whisper transcription…")
+    print(
+        "No official captions found or diarization requested. Attempting local Whisper transcription…"
+    )
     with tempfile.TemporaryDirectory() as td:
         audio_path = download_audio(video_url_or_id, Path(td))
         if not audio_path:
@@ -250,6 +279,7 @@ def get_transcript(video_url_or_id: str, lang: str, whisper_model: str = "medium
         if use_diarization:
             segments = add_diarization(audio_path, segments)
     return segments
+
 
 def chunk_text(text: str, max_len: int = 6000) -> List[str]:
     # Simple chunking on sentence boundaries if possible
@@ -270,7 +300,9 @@ def chunk_text(text: str, max_len: int = 6000) -> List[str]:
     return chunks
 
 
-def summarize_transcript(segments: List[Segment], summary_model: str = "facebook/bart-large-cnn") -> Summary:
+def summarize_transcript(
+    segments: List[Segment], summary_model: str = "facebook/bart-large-cnn"
+) -> Summary:
     """Summarize using a local transformers model. Falls back to LexRank if transformers unavailable."""
     transcript = " ".join([s.text for s in segments])
     # ... rest same as before
@@ -279,6 +311,7 @@ def summarize_transcript(segments: List[Segment], summary_model: str = "facebook
         from sumy.parsers.plaintext import PlaintextParser
         from sumy.nlp.tokenizers import Tokenizer
         from sumy.summarizers.lex_rank import LexRankSummarizer
+
         parser = PlaintextParser.from_string(transcript, Tokenizer("english"))
         lex = LexRankSummarizer()
         sentences = lex(parser.document, 7)
@@ -288,7 +321,7 @@ def summarize_transcript(segments: List[Segment], summary_model: str = "facebook
 
     # Initialize summarizer pipeline (batching through chunks)
     tok = AutoTokenizer.from_pretrained(summary_model)
-    max_input = getattr(tok, 'model_max_length', 1024)
+    max_input = getattr(tok, "model_max_length", 1024)
     # Provide a safety cap
     if max_input > 4096:
         max_input = 4096
@@ -316,14 +349,23 @@ def summarize_transcript(segments: List[Segment], summary_model: str = "facebook
         if buf:
             chunks.append("\n\n".join(buf))
 
-    summarizer = pipeline("summarization", model=summary_model, tokenizer=tok, device=0 if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available() else -1))
+    summarizer = pipeline(
+        "summarization",
+        model=summary_model,
+        tokenizer=tok,
+        device=(
+            0
+            if torch.cuda.is_available()
+            else ("mps" if torch.backends.mps.is_available() else -1)
+        ),
+    )
     partials = []
     for c in chunks:
         # HuggingFace summarizers often have a 1024 or 2048 token limit; enforce truncation
         if len(c) > max_input * approx_char_per_token:
             c = c[: int(max_input * approx_char_per_token)]
         res = summarizer(c, max_length=300, min_length=60, do_sample=False)
-        partials.append(res[0]['summary_text'].strip())
+        partials.append(res[0]["summary_text"].strip())
 
     combined = "\n\n".join(partials)
 
@@ -332,7 +374,9 @@ def summarize_transcript(segments: List[Segment], summary_model: str = "facebook
         meta_input = combined
         if len(meta_input) > max_input * approx_char_per_token:
             meta_input = meta_input[: int(max_input * approx_char_per_token)]
-        meta = summarizer(meta_input, max_length=250, min_length=60, do_sample=False)[0]['summary_text'].strip()
+        meta = summarizer(meta_input, max_length=250, min_length=60, do_sample=False)[
+            0
+        ]["summary_text"].strip()
     else:
         meta = combined
 
@@ -356,7 +400,13 @@ def ensure_env_loaded():
     load_dotenv(override=False)
 
 
-def write_markdown(out_path: Path, title: str, video_url: str, summary: Summary, segments: List[Segment]):
+def write_markdown(
+    out_path: Path,
+    title: str,
+    video_url: str,
+    summary: Summary,
+    segments: List[Segment],
+):
     md = []
     md.append(f"# {title}\n")
     md.append(f"Source: {video_url}\n")
@@ -381,12 +431,17 @@ def write_markdown(out_path: Path, title: str, video_url: str, summary: Summary,
     out_path.write_text("\n".join(md), encoding="utf-8")
 
 
-def generate_content(video_id: str, title: str, summary: Summary, segments: List[Segment]) -> dict:
+def generate_content(
+    video_id: str, title: str, summary: Summary, segments: List[Segment]
+) -> dict:
     """Generate structured content dictionary for export."""
     # Convert segments to text for transcript
     transcript_text = " ".join([s.text for s in segments])
     # Also include segments for timestamped output
-    segment_dicts = [{"start": s.start, "end": s.end, "text": s.text, "speaker": s.speaker} for s in segments]
+    segment_dicts = [
+        {"start": s.start, "end": s.end, "text": s.text, "speaker": s.speaker}
+        for s in segments
+    ]
     return {
         "title": title,
         "url": f"https://www.youtube.com/watch?v={video_id}",
@@ -395,6 +450,7 @@ def generate_content(video_id: str, title: str, summary: Summary, segments: List
         "transcript": transcript_text,
         "segments": segment_dicts,
     }
+
 
 def markdown_to_html(content_dict: dict) -> str:
     """Convert content dict to HTML using markdown-it."""
@@ -407,18 +463,18 @@ def markdown_to_html(content_dict: dict) -> str:
     md.append(f"{content_dict['detailed']}\n")
     md.append("\n## Full transcript\n")
     md.append("<details>\n<summary>Show transcript</summary>\n\n")
-    md.append(content_dict['transcript'].strip())
+    md.append(content_dict["transcript"].strip())
     md.append("\n\n</details>\n")
     # Timestamped transcript
-    segments = content_dict.get('segments', [])
-    if segments and any(s.get('start') is not None for s in segments):
+    segments = content_dict.get("segments", [])
+    if segments and any(s.get("start") is not None for s in segments):
         md.append("\n## Timestamped transcript\n")
         md.append("<details>\n<summary>Show timestamped transcript</summary>\n\n")
         for seg in segments:
-            start = seg.get('start', 0.0)
+            start = seg.get("start", 0.0)
             start_str = f"{int(start // 60):02d}:{start % 60:05.2f}"
-            speaker = f" [{seg.get('speaker')}]" if seg.get('speaker') else ""
-            text = seg.get('text', '')
+            speaker = f" [{seg.get('speaker')}]" if seg.get("speaker") else ""
+            text = seg.get("text", "")
             md.append(f"**{start_str}{speaker}:** {text}\n")
         md.append("\n</details>\n")
     md_text = "\n".join(md)
@@ -428,12 +484,17 @@ def markdown_to_html(content_dict: dict) -> str:
     md_parser = MarkdownIt("commonmark")
     html = md_parser.render(md_text)
     return html
+
+
 def fetch_video_title(video_id: str) -> str:
     # Try oEmbed (no API key required)
     try:
         r = requests.get(
             "https://www.youtube.com/oembed",
-            params={"url": f"https://www.youtube.com/watch?v={video_id}", "format": "json"},
+            params={
+                "url": f"https://www.youtube.com/watch?v={video_id}",
+                "format": "json",
+            },
             timeout=15,
         )
         if r.ok:
@@ -445,34 +506,73 @@ def fetch_video_title(video_id: str) -> str:
 
 def export_content(content_dict: dict, path: Path, fmt: str):
     """Export content dict to specified format (md, json, html, pdf)."""
-    if fmt == 'md':
-        title = content_dict['title']
-        url = content_dict['url']
-        summary = Summary(tldr=content_dict['tldr'], detailed=content_dict['detailed'])
-        segments = [Segment(start=s['start'], end=s['end'], text=s['text'], speaker=s.get('speaker')) for s in content_dict['segments']]
+    if fmt == "md":
+        title = content_dict["title"]
+        url = content_dict["url"]
+        summary = Summary(tldr=content_dict["tldr"], detailed=content_dict["detailed"])
+        segments = [
+            Segment(
+                start=s["start"], end=s["end"], text=s["text"], speaker=s.get("speaker")
+            )
+            for s in content_dict["segments"]
+        ]
         write_markdown(path, title, url, summary, segments)
-    elif fmt == 'json':
-        path.write_text(json.dumps(content_dict, indent=2, ensure_ascii=False), encoding='utf-8')
-    elif fmt == 'html':
+    elif fmt == "json":
+        path.write_text(
+            json.dumps(content_dict, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
+    elif fmt == "html":
         html = markdown_to_html(content_dict)
-        path.write_text(html, encoding='utf-8')
-    elif fmt == 'pdf':
+        path.write_text(html, encoding="utf-8")
+    elif fmt == "pdf":
         html = markdown_to_html(content_dict)
         if HTML is None:
-            raise ImportError("WeasyPrint not available. Install with 'pip install weasyprint'.")
+            raise ImportError(
+                "WeasyPrint not available. Install with 'pip install weasyprint'."
+            )
         HTML(string=html).write_pdf(str(path))
     else:
         raise ValueError(f"Unsupported format: {fmt}")
 
+
 def main():
-    parser = argparse.ArgumentParser(description="Local GPU transcription (Whisper) + local summarization.")
-    parser.add_argument("youtube_urls", nargs='+', help="YouTube video URL(s) or 11-char ID(s)")
-    parser.add_argument("--output", "-o", default=None, help="Output file path (for single video) or directory (for batch)")
-    parser.add_argument("--lang", default="en", help="Preferred transcript language, e.g., en, es")
-    parser.add_argument("--whisper-model", default="tiny", help="Whisper model size (tiny, base, small, medium, large)")
-    parser.add_argument("--summary-model", default="facebook/bart-large-cnn", help="HuggingFace summarization model")
-    parser.add_argument("--format", "-f", default="md", choices=["md", "pdf", "html", "json"], help="Output format (md, pdf, html, json)")
-    parser.add_argument("--diarization", action="store_true", help="Enable speaker diarization (requires HF_TOKEN)")
+    parser = argparse.ArgumentParser(
+        description="Local GPU transcription (Whisper) + local summarization."
+    )
+    parser.add_argument(
+        "youtube_urls", nargs="+", help="YouTube video URL(s) or 11-char ID(s)"
+    )
+    parser.add_argument(
+        "--output",
+        "-o",
+        default=None,
+        help="Output file path (for single video) or directory (for batch)",
+    )
+    parser.add_argument(
+        "--lang", default="en", help="Preferred transcript language, e.g., en, es"
+    )
+    parser.add_argument(
+        "--whisper-model",
+        default="tiny",
+        help="Whisper model size (tiny, base, small, medium, large)",
+    )
+    parser.add_argument(
+        "--summary-model",
+        default="facebook/bart-large-cnn",
+        help="HuggingFace summarization model",
+    )
+    parser.add_argument(
+        "--format",
+        "-f",
+        default="md",
+        choices=["md", "pdf", "html", "json"],
+        help="Output format (md, pdf, html, json)",
+    )
+    parser.add_argument(
+        "--diarization",
+        action="store_true",
+        help="Enable speaker diarization (requires HF_TOKEN)",
+    )
     args = parser.parse_args()
 
     ensure_env_loaded()

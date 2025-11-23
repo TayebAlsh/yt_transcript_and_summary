@@ -86,4 +86,7 @@ if st.button("Process", type="primary"):
                     mime="application/octet-stream" if output_format == "json" else f"application/{output_format}",
                     key=f"download_{safe_title}"
                 )
-                tmp_path.unlink()
+                try:
+                    tmp_path.unlink()
+                except PermissionError:
+                    print(f"Could not delete temp file {tmp_path} (likely downloading); will clean later.")
