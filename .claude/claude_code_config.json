@@ -1,0 +1,67 @@
+{
+  "version": "1.0.0",
+  "project": {
+    "name": "YouTube Transcript & Summary",
+    "description": "Transcribe and summarize YouTube videos using local AI models",
+    "language": "python",
+    "framework": ["streamlit", "pytorch", "transformers"]
+  },
+  "agents": {
+    "enabled": true,
+    "auto_load": true,
+    "commands_directory": ".claude/commands"
+  },
+  "context": {
+    "architecture_docs": [
+      ".github/copilot-instructions.md",
+      "README.md",
+      "plan.md"
+    ],
+    "key_files": [
+      "yt_transcribe_and_summarize.py",
+      "streamlit_app.py",
+      "requirements.txt"
+    ],
+    "feature_roadmap": "next_level_features.md"
+  },
+  "conventions": {
+    "style_guide": "PEP 8",
+    "error_handling": "try-except with graceful fallbacks",
+    "dependencies": "optional with None checks",
+    "data_structures": "dataclasses preferred",
+    "documentation": "docstrings for functions and classes"
+  },
+  "workflows": {
+    "feature_development": [
+      "/implement-feature",
+      "/test-app",
+      "/update-docs"
+    ],
+    "bug_fixing": [
+      "/fix-bug",
+      "/test-app",
+      "/review-code"
+    ],
+    "performance_optimization": [
+      "/optimize-performance",
+      "/batch-optimize",
+      "/test-app"
+    ],
+    "pre_commit": [
+      "/review-code",
+      "/test-app",
+      "/update-docs"
+    ]
+  },
+  "testing": {
+    "framework": "pytest",
+    "coverage_goal": 70,
+    "smoke_test": "python3 yt_transcribe_and_summarize.py -h"
+  },
+  "development": {
+    "python_version": "3.9+",
+    "virtual_env": ".venv",
+    "gpu_support": "CUDA or MPS",
+    "system_deps": ["ffmpeg", "cairo", "pango"]
+  }
+}

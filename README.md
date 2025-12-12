@@ -22,20 +22,13 @@ Transcribe a YouTube video and generate a summary with timestamps, speaker diari
 
 ## Setup
 
-1) Create and activate a virtual environment
+1) Install dependencies
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
+pixi install
 ```
 
-2) Install dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-3) (Optional) Set environment variables
+2) (Optional) Set environment variables
 
 Create a `.env` file:
 
@@ -50,13 +43,13 @@ HF_TOKEN=your_huggingface_token_here  # For speaker diarization
 Basic usage:
 
 ```bash
-python yt_transcribe_and_summarize.py "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+pixi run transcribe "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 ```
 
 Batch processing:
 
 ```bash
-python yt_transcribe_and_summarize.py url1 url2 url3 --output ./outputs/
+pixi run transcribe url1 url2 url3 --output ./outputs/
 ```
 
 Options:
@@ -73,7 +66,7 @@ Options:
 Run:
 
 ```bash
-streamlit run streamlit_app.py
+pixi run web
 ```
 
 Enter URLs (one per line), select options, process, and download files.

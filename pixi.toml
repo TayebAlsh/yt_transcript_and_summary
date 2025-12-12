@@ -1,0 +1,36 @@
+[workspace]
+authors = ["TayebAlsh <emta500@gmail.com>"]
+channels = ["conda-forge"]
+name = "yt_transcript_and_summary"
+platforms = ["osx-arm64"]
+version = "0.1.0"
+
+[tasks]
+transcribe = "python yt_transcribe_and_summarize.py"
+web = "streamlit run streamlit_app.py"
+serve = "streamlit run streamlit_app.py"
+cli = "python yt_transcribe_and_summarize.py"
+
+[dependencies]
+python = ">=3.9"
+ffmpeg = "*"
+
+[pypi-dependencies]
+youtube-transcript-api = ">=0.6.2"
+yt-dlp = ">=2025.1.26"
+requests = ">=2.32.0"
+python-dotenv = ">=1.0.1"
+sumy = ">=0.11.0"
+whisper-timestamped = ">=1.14.4"
+openai-whisper = ">=20231117"
+transformers = ">=4.42.0"
+torch = ">=2.2.0"
+sentencepiece = ">=0.2.0"
+accelerate = ">=0.30.0"
+einops = ">=0.7.0"
+streamlit = ">=1.38.0"
+weasyprint = ">=62.3"
+markdown-it-py = ">=3.0.0"
+html5lib = ">=1.1"
+"pyannote.audio" = ">=3.1.1"
+watchdog = "*"
