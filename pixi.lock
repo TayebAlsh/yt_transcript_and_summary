@@ -93,6 +93,8 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/tzdata-2025b-h78e105d_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/x264-1!164.3095-h57fd34a_2.tar.bz2
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/x265-3.5-hbc6ce65_3.tar.bz2
+      - conda: https://conda.anaconda.org/conda-forge/noarch/yt-dlp-2026.3.17-pyhcf101f3_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/yt-dlp-ejs-0.8.0-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/zstd-1.5.7-hbf9d68e_6.conda
       - pypi: https://files.pythonhosted.org/packages/9f/d2/c581486aa6c4fbd7394c23c47b83fa1a919d34194e16944241daf9e762dd/accelerate-1.12.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/0f/15/5bf3b99495fb160b63f95972b81750f18f7f4e02ad051373b669d17d44f2/aiohappyeyeballs-2.6.1-py3-none-any.whl
@@ -236,7 +238,6 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/98/2f/ad0ab53c44ce630b439b280a2d34ecd65c86efc0e1bceefefa781f9fae64/whisper_timestamped-1.15.9-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/11/63/ff458113c5c2dac9a9719ac68ee7c947cb621432bcf28c9972b1c0e83938/yarl-1.22.0-cp314-cp314-macosx_11_0_arm64.whl
       - pypi: https://files.pythonhosted.org/packages/ef/75/a861661b73d862e323c12af96ecfb237fb4d1433e551183d4172d39d5275/youtube_transcript_api-1.2.3-py3-none-any.whl
-      - pypi: https://files.pythonhosted.org/packages/6e/2f/98c3596ad923f8efd32c90dca62e241e8ad9efcebf20831173c357042ba0/yt_dlp-2025.12.8-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/2e/54/647ade08bf0db230bfea292f893923872fd20be6ac6f53b2b936ba839d75/zipp-3.23.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/98/62/ec5cb67ee379c6a4f296f1277b971ff8c26460bf8775f027f82c519a0a72/zopfli-0.4.0-cp310-abi3-macosx_10_9_universal2.whl
 packages:
@@ -4406,39 +4407,42 @@ packages:
   - defusedxml>=0.7.1,<0.8.0
   - requests
   requires_python: '>=3.8,<3.15'
-- pypi: https://files.pythonhosted.org/packages/6e/2f/98c3596ad923f8efd32c90dca62e241e8ad9efcebf20831173c357042ba0/yt_dlp-2025.12.8-py3-none-any.whl
-  name: yt-dlp
-  version: 2025.12.8
-  sha256: 36e2584342e409cfbfa0b5e61448a1c5189e345cf4564294456ee509e7d3e065
-  requires_dist:
-  - build ; extra == 'build'
-  - hatchling>=1.27.0 ; extra == 'build'
-  - pip ; extra == 'build'
-  - setuptools>=71.0.2 ; extra == 'build'
-  - wheel ; extra == 'build'
-  - curl-cffi>=0.5.10,!=0.6.*,!=0.7.*,!=0.8.*,!=0.9.*,<0.14 ; implementation_name == 'cpython' and extra == 'curl-cffi'
-  - brotli ; implementation_name == 'cpython' and extra == 'default'
-  - brotlicffi ; implementation_name != 'cpython' and extra == 'default'
-  - certifi ; extra == 'default'
-  - mutagen ; extra == 'default'
-  - pycryptodomex ; extra == 'default'
-  - requests>=2.32.2,<3 ; extra == 'default'
-  - urllib3>=2.0.2,<3 ; extra == 'default'
-  - websockets>=13.0 ; extra == 'default'
-  - yt-dlp-ejs==0.3.2 ; extra == 'default'
-  - autopep8~=2.0 ; extra == 'dev'
-  - pre-commit ; extra == 'dev'
-  - pytest-rerunfailures~=14.0 ; extra == 'dev'
-  - pytest~=8.1 ; extra == 'dev'
-  - ruff~=0.14.0 ; extra == 'dev'
-  - pyinstaller>=6.17.0 ; extra == 'pyinstaller'
-  - cffi ; extra == 'secretstorage'
-  - secretstorage ; extra == 'secretstorage'
-  - autopep8~=2.0 ; extra == 'static-analysis'
-  - ruff~=0.14.0 ; extra == 'static-analysis'
-  - pytest-rerunfailures~=14.0 ; extra == 'test'
-  - pytest~=8.1 ; extra == 'test'
-  requires_python: '>=3.10'
+- conda: https://conda.anaconda.org/conda-forge/noarch/yt-dlp-2026.3.17-pyhcf101f3_0.conda
+  sha256: 99edb5578993bf5eb112e7e7d9fc17770b615cdcc1c0f729a65dd2355e4985a8
+  md5: 739e3f581a8558a5289929c93a51cad6
+  depends:
+  - python >=3.10
+  - yt-dlp-ejs ==0.8.0
+  - python
+  constrains:
+  - brotli
+  - brotlicffi
+  - certifi
+  - mutagen
+  - pycryptodomex
+  - requests <3,>=2.32.2
+  - urllib3 >=2.0.2,<3
+  - websockets >=13.0
+  - autopep8 >=2.0,<3.dev0
+  - ruff >=0.15.0,<0.16.dev0
+  - deno >=2.6.6
+  license: Unlicense
+  purls:
+  - pkg:pypi/yt-dlp?source=hash-mapping
+  size: 2201696
+  timestamp: 1773850423101
+- conda: https://conda.anaconda.org/conda-forge/noarch/yt-dlp-ejs-0.8.0-pyhcf101f3_0.conda
+  sha256: 00b939c4c82c1ceb33db8dd4e2138c60f81c2321d5dcba9d31dcdd04ba975fad
+  md5: 33a55762ed2269c973c0f1531e5e9b0d
+  depends:
+  - python >=3.10
+  - yt-dlp
+  - python
+  license: Unlicense
+  purls:
+  - pkg:pypi/yt-dlp-ejs?source=hash-mapping
+  size: 58815
+  timestamp: 1773847913870
 - pypi: https://files.pythonhosted.org/packages/2e/54/647ade08bf0db230bfea292f893923872fd20be6ac6f53b2b936ba839d75/zipp-3.23.0-py3-none-any.whl
   name: zipp
   version: 3.23.0

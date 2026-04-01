@@ -14,6 +14,7 @@ cli = "python yt_transcribe_and_summarize.py"
 [dependencies]
 python = ">=3.9"
 ffmpeg = "*"
+yt-dlp = ">=2026.3.17,<2027"
 
 [pypi-dependencies]
 youtube-transcript-api = ">=0.6.2"
